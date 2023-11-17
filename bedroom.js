@@ -54,3 +54,11 @@ function scale4(a, b, c) {
    	result[2][2] = c;
    	return result;
 }
+
+function render() {
+    gl.clear( gl.COLOR_BUFFER_BIT );
+
+    gl.uniform1i(gl.getUniformLocation(program, "colorIndex"), 2);
+    gl.drawArrays( gl.LINE_STRIP, 1, SIZE*2+1);
+    gl.drawArrays(gl.LINE_STRIP, 14, 101);
+}
