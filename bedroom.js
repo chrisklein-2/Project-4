@@ -13,7 +13,7 @@ function main() {
 
 
     modelViewMatrix = mat4();
-    projectionMatrix = ortho(10, 8, -8, 8, -1, 1);
+    projectionMatrix = ortho(-8, 8, -8, 8, -1, 1);
 
     initWebGL();
 
