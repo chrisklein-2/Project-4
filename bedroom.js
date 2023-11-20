@@ -41,23 +41,23 @@ var vb = vec4(0.0, 0.942809, 0.333333, 1);
 var vc = vec4(-0.816497, -0.471405, 0.333333, 1);
 var vd = vec4(0.816497, -0.471405, 0.333333,1);
     
-var lightPosition = vec4(.2, 1, 1, 0 );
 
-var lightAmbient = vec4(0.2, 0.2, 0.2, 1.0 );
-var lightDiffuse = vec4(.8, 0.8, 0.8, 1.0 );
-var lightSpecular = vec4( .8, .8, .8, 1.0 );
+var lightPosition = vec4(-4, 3, 4, 0.0 );
+var lightAmbient = vec4(.8, 0.8, 0.8, 1.0 );
+var lightDiffuse = vec4( .5, .5, .5, 1.0 );
+var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 
-var materialAmbient = vec4( .2, .2, .2, 1.0 );
-var materialDiffuse = vec4( 0.0, 0.5, 1, 1.0);
-var materialSpecular = vec4( 1, 1, 1, 1.0 );
-
-var materialShininess = 50.0;
+var materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+var materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+var materialSpecular = vec4( .327, .771, .86, 1.0 );
+var materialShininess = 1;
 
 var ambientColor, diffuseColor, specularColor;
 
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 var mvMatrixStack=[];
+var program;
 
 window.onload = function init() 
 {
@@ -74,8 +74,9 @@ window.onload = function init()
     //
     //  Load shaders and initialize attribute buffers
     //
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
+
 
     // set up lighting and material
     ambientProduct = mult(lightAmbient, materialAmbient);
@@ -103,17 +104,23 @@ window.onload = function init()
     gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition);
   
+    changeColors();
+
+
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
 
+
+
+    render();
+}
+
+function changeColors(){
     gl.uniform4fv( gl.getUniformLocation(program, "ambientProduct"),flatten(ambientProduct) );
     gl.uniform4fv( gl.getUniformLocation(program, "diffuseProduct"),flatten(diffuseProduct) );
     gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"),flatten(specularProduct) );	
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"),flatten(lightPosition) );
     gl.uniform1f( gl.getUniformLocation(program, "shininess"),materialShininess );
-
-
-    render();
 }
 
 
@@ -150,6 +157,71 @@ function DrawWall(thickness)
 	modelViewMatrix=mvMatrixStack.pop();
 }
 
+function drawDeskLeg(x, y){
+    var s, t, r;
+
+    mvMatrixStack.push(modelViewMatrix);
+
+    t = translate(-.1, y, 0);
+    s = scale4(.02, .02, .2);
+    r = rotate(-90, 1, 0, 0);
+
+    modelViewMatrix = mult(mult(modelViewMatrix, t), s);
+    modelViewMatrix = mult(modelViewMatrix, r);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    DrawSolidCube(1);
+
+    modelViewMatrix=mvMatrixStack.pop();
+}
+
+function DrawDesk(){
+    
+    var s, t, r;
+
+    //draw desk
+    mvMatrixStack.push(modelViewMatrix);
+   
+    t = translate(.1, .3, 0);
+    s = scale4(.3,.04,.3);
+    modelViewMatrix = mult(mult(modelViewMatrix, t),s);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+    DrawSolidCube(1);
+    modelViewMatrix = mvMatrixStack.pop();
+
+    //draw legs
+    mvMatrixStack.push(modelViewMatrix);
+    t= translate(0, 0, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .1);
+
+    t= translate(.25, -.4, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+    t= translate(.1, .1, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+    t= translate(.25, -.4, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+
+}
+
+function drawBeanBag(){
+
+    quad(0, 1, 2, 3);   // AFJE left side
+    quad(3, 1, 2, 3);   // DEJI left roof
+    quad(0, 3, 1, 3);
+    quad(1, 2, 2, 1);
+    quad(0, 1, 2, 3);
+
+}
 
 function render()
 {
@@ -164,13 +236,49 @@ function render()
 	gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
 
+    mvMatrixStack.push(modelViewMatrix);
+    t=translate(0.4, 0, 0.4);
+    modelViewMatrix=mult(modelViewMatrix, t);
+
+    //changes desk colors
+    materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
+    materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
+    materialSpecular = vec4( .18, .0216, .0374, 1.0 );  //this chooses the color
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
+    //draws desk
+    DrawDesk();
+	modelViewMatrix=mvMatrixStack.pop();
+
+    mvMatrixStack.push(modelViewMatrix);
+
+    drawBeanBag();
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+    //changes wall colors
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+    materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+    materialSpecular = vec4( .327, .771, .86, 1.0 ); //this chooses the color
+   
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
 	// wall # 1: in xz-plane
 	DrawWall(0.02); 
 	
 	// wall #2: in yz-plane
 	mvMatrixStack.push(modelViewMatrix);
 	r=rotate(90.0, 0.0, 0.0, 1.0);
-        modelViewMatrix=mult(modelViewMatrix, r);
+    modelViewMatrix=mult(modelViewMatrix, r);
 	DrawWall(0.02); 
 	modelViewMatrix=mvMatrixStack.pop();
 	
@@ -182,7 +290,6 @@ function render()
 	DrawWall(0.02); 
 	modelViewMatrix=mvMatrixStack.pop();
 
-    requestAnimFrame(render);
 }
 
 // ******************************************
