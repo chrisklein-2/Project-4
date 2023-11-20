@@ -33,7 +33,18 @@ var vertices = [
         vec4( -0.5, -0.5, -0.5, 1.0 ),
         vec4( -0.5,  0.5, -0.5, 1.0 ),
         vec4( 0.5,  0.5, -0.5, 1.0 ),
-        vec4( 0.5, -0.5, -0.5, 1.0 )
+        vec4( 0.5, -0.5, -0.5, 1.0 ),
+        vec4( 0, 0, 1, 1),  //A(8) 
+        vec4( 1, 0, 0, 1),  //B(9)
+        vec4( 1, 1 ,0, 1),  //C(10)
+        vec4( .5, 1,5, 0, 1),  //D(11)
+        vec4( 0, 1, 0, 1),  //E(12)
+        vec4( 0, 0, 1, 1),  //F(13) 
+        vec4( 1, 0, 1, 1),  //G(14)
+        vec4( 1, 1 ,1, 1),  //H(15)
+        vec4( .5, 1,5, 1, 1),  //I(16)
+        vec4( 0, 1, 1, 1)   //J(17)
+
     ];
 
 var va = vec4(0.0, 0.0, -1.0,1);
@@ -181,7 +192,7 @@ function DrawDesk(){
     //draw desk
     mvMatrixStack.push(modelViewMatrix);
    
-    t = translate(.1, .3, 0);
+    t = translate(.4, .3, 0);
     s = scale4(.3,.04,.3);
     modelViewMatrix = mult(mult(modelViewMatrix, t),s);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -191,19 +202,26 @@ function DrawDesk(){
 
     //draw legs
     mvMatrixStack.push(modelViewMatrix);
-    t= translate(0, 0, 0);
+
+    //front left
+    t= translate(.32, 0, 0);
+    r = rotate(90,-9,0,1);
     modelViewMatrix = mult(modelViewMatrix, t);
+    modelViewMatrix = mult(modelViewMatrix,r);
     drawDeskLeg(0, .1);
 
+    //front right
     t= translate(.25, -.4, 0);
     modelViewMatrix = mult(modelViewMatrix, t);
     drawDeskLeg(0, .5);
 
-    t= translate(.1, .1, 0);
+    //back right
+    t= translate(.05, .2, 0);
     modelViewMatrix = mult(modelViewMatrix, t);
     drawDeskLeg(0, .5);
 
-    t= translate(.25, -.4, 0);
+    //back left
+    t= translate(-.2, 0, 0);
     modelViewMatrix = mult(modelViewMatrix, t);
     drawDeskLeg(0, .5);
 
@@ -215,7 +233,7 @@ function DrawDesk(){
 
 function drawBeanBag(){
 
-    quad(0, 1, 2, 3);   // AFJE left side
+    quad(8, 9, 10, 11);   // AFJE left side
     quad(3, 1, 2, 3);   // DEJI left roof
     quad(0, 3, 1, 3);
     quad(1, 2, 2, 1);
@@ -243,7 +261,7 @@ function render()
     //changes desk colors
     materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
     materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
-    materialSpecular = vec4( .18, .0216, .0374, 1.0 );  //this chooses the color
+    materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
