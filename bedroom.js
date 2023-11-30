@@ -203,7 +203,7 @@ function DrawDesk(){
     //draw desk
     mvMatrixStack.push(modelViewMatrix);
 
-    t = translate(.4, .3, 0);
+    t = translate(.75, .35, 0);
     s = scale4(.3,.04,.3);
     modelViewMatrix = mult(mult(modelViewMatrix, t),s);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -215,7 +215,7 @@ function DrawDesk(){
     mvMatrixStack.push(modelViewMatrix);
 
     //front left
-    t = translate(.2, 0, .05);
+    t = translate(.57, .05, .03);
     r = rotate(90,-9,0,1);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
@@ -246,7 +246,7 @@ function drawChair(){
     mvMatrixStack.push(modelViewMatrix);
 
     //back of chair
-    t = translate(.77, 0.35, 0.7);
+    t = translate(1.1, 0.4, 0.7);
     r = rotate(180,-1,0,1);
     s = scale4(.02,.25,.15);
     modelViewMatrix = mult(modelViewMatrix, t);
@@ -258,7 +258,7 @@ function drawChair(){
     modelViewMatrix = mvMatrixStack.pop();
     mvMatrixStack.push(modelViewMatrix);
 
-    t = translate(0.77, 0.25, .63);
+    t = translate(1.1, 0.28, .63);
     s = scale4(.15,.04,0.15);
     modelViewMatrix = mult(mult(modelViewMatrix, t),s);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -271,7 +271,7 @@ function drawChair(){
     mvMatrixStack.push(modelViewMatrix);
 
     //front left
-    t = translate(.69, .11, 0.65);
+    t = translate(1.02, .15, 0.65);
     r = rotate(90,-9,0,1);
     s = scale4(.46,.4,.5);
     modelViewMatrix = mult(modelViewMatrix, t);
