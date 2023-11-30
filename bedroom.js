@@ -21,7 +21,7 @@ var slices = 24, stacks = 10;
 var pointsArray = [];
 var normalsArray = [];
 
-var animateFlag = 0;
+var isBlinking = false;
 
 var left = -1;
 var right = 1;
@@ -41,7 +41,6 @@ var zAxis = 2;
 var axis = 0;
 var theta =[0, 0, 0];
 
-
 var N, N_Triangle;
 
 var sphereCount = 0;
@@ -58,6 +57,16 @@ var vertices = [
       vec4( 0.5, -0.5, -0.5, 1.0 ),
 
        ];
+
+//vertices of the lamp
+var lampProfile = [
+    vec2(0.5, 0.0), // Base of the lamp
+    vec2(0.5, 0.2),
+    vec2(0.4, 0.4),
+    vec2(0.3, 0.6),
+    vec2(0.2, 0.8),
+    vec2(0.1, 1.0), // Top of the lamp
+];
 
 var va = vec4(0.0, 0.0, -1.0,1);
 var vb = vec4(0.0, 0.942809, 0.333333, 1);
@@ -101,7 +110,8 @@ window.onload = function init(){
     // generate the points/normals
     colorCube();
     tetrahedron(va, vb, vc, vd, numTimesToSubdivide);
-
+    GenPillowPoints();
+    //generateLampSurface();
     // pass data onto GPU
     var nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -130,11 +140,7 @@ window.onload = function init(){
 
           //makes the a key animate
           if (event.keyCode == 65) {
-              if(animateFlag == 0)
-                animateFlag = 1;
-              else {
-                animateFlag = 0;
-              }
+              isBlinking = !isBlinking;
               render();
           }
         });
@@ -149,6 +155,42 @@ function changeColors(){
     gl.uniform4fv( gl.getUniformLocation(program, "specularProduct"),flatten(specularProduct) );
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"),flatten(lightPosition) );
     gl.uniform1f( gl.getUniformLocation(program, "shininess"),materialShininess );
+}
+
+function GenPillowPoints() {
+    var slices = 24;
+    var stacks = 12;
+    var sliceInc = 2 * Math.PI / slices;
+    var stackInc = Math.PI / stacks;
+
+    for (var phi = 0; phi <= Math.PI; phi += stackInc) {
+        for (var theta = 0; theta <= 2 * Math.PI; theta += sliceInc) {
+            var x = 1.5 * Math.sin(phi) * Math.cos(theta); // Elongate in X
+            var y = 0.6 * Math.cos(phi); // Flatten in Y
+            var z = Math.sin(phi) * Math.sin(theta); // Regular Z
+
+            var xNext = 1.5 * Math.sin(phi + stackInc) * Math.cos(theta);
+            var yNext = 0.6 * Math.cos(phi + stackInc);
+            var zNext = Math.sin(phi + stackInc) * Math.sin(theta);
+
+            var xThetaNext = 1.5 * Math.sin(phi) * Math.cos(theta + sliceInc);
+            var yThetaNext = 0.6 * Math.cos(phi);
+            var zThetaNext = Math.sin(phi) * Math.sin(theta + sliceInc);
+
+            // Define two triangles for each quad on the pillow surface
+            pointsArray.push(vec4(x, y, z, 1));
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+
+            var xNextThetaNext = 1.5 * Math.sin(phi + stackInc) * Math.cos(theta + sliceInc);
+            var yNextThetaNext = 0.6 * Math.cos(phi + stackInc);
+            var zNextThetaNext = Math.sin(phi + stackInc) * Math.sin(theta + sliceInc);
+
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xNextThetaNext, yNextThetaNext, zNextThetaNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+        }
+    }
 }
 
 
@@ -383,7 +425,7 @@ function wallProjector(){
         vertices.push(verticesx[i]);
     }
 
-  	r = rotate(48.0, 1.0, 0.0, 1.0);
+  	r = rotate(50.0, 1.0, 0.0, 1.0);
     t = translate(2, 2.5, 2);
     s = scale4(.15, .15, .1);
     modelViewMatrix = mult(modelViewMatrix, t);
@@ -403,6 +445,136 @@ function wallProjector(){
     modelViewMatrix = mvMatrixStack.pop();
 
 }
+
+function drawBedLeg(x, y){
+    var s, t, r;
+
+    mvMatrixStack.push(modelViewMatrix);
+
+    t = translate(-1, y, 0);
+    s = scale4(.9, .1, .06);
+    r = rotate(75, 1, 0, 0);
+
+    modelViewMatrix = mult(mult(modelViewMatrix, t), s);
+    //modelViewMatrix = mult(modelViewMatrix, r);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    DrawSolidCube(1);
+
+    modelViewMatrix=mvMatrixStack.pop();
+}
+
+function DrawBed(bedLength, bedWidth, bedHeight) {
+    var t,r,s;
+
+
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+    materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+    materialSpecular = vec4( .26, .168, .0, 1.0 ); //this chooses the color
+    materialShininess = 30;
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
+    //draw legs
+    mvMatrixStack.push(modelViewMatrix);
+
+
+    //front left
+    t = translate(0, 0, .3);
+    r = rotate(90,0,0,1);
+    s = scale4(.1,.5,.6);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    modelViewMatrix = mult(modelViewMatrix,r);
+    modelViewMatrix = mult(modelViewMatrix,s);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+    drawBedLeg(0, .1);
+
+    //front right
+    t = translate(0.2, -1., 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawBedLeg(0, .5);
+
+    //back right
+    t = translate(0, 0, -.95);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawBedLeg(0, .5);
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+    // Draw the bed as a long cube (mattress)
+    mvMatrixStack.push(modelViewMatrix);
+    materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
+    materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
+    materialSpecular = vec4( .86, .72, .09, 1.0 );  //this chooses the color
+    materialShininess = 5;
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    changeColors();
+
+
+
+    s = scale4(bedLength, bedHeight, bedWidth); // Scale to the bed dimensions
+    t = translate(.256, 0 ,0);
+
+    modelViewMatrix = mult(modelViewMatrix, s);
+    modelViewMatrix = mult(modelViewMatrix,t);
+
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    DrawSolidCube(1); // Assuming you have a unit cube drawing function
+    modelviewMatrix = mvMatrixStack.pop();
+
+}
+
+//make the Surface of Revolutions lamp
+function generateLampSurface() {
+    var angleStep = 10; // degrees for each step of revolution
+
+    for (var i = 0; i < lampProfile.length - 1; i++) {
+        var p1 = lampProfile[i];
+        var p2 = lampProfile[i + 1];
+
+        for (var j = 0; j <= 360; j += angleStep) {
+            var angle = radians(j);
+            var angleNext = radians(j + angleStep);
+
+            // Four points of the quad
+            var q1 = rotateY(p1, angle);
+            var q2 = rotateY(p2, angle);
+            var q3 = rotateY(p2, angleNext);
+            var q4 = rotateY(p1, angleNext);
+
+            // Add points to the array
+            pointsArray.push(q1);
+            pointsArray.push(q2);
+            pointsArray.push(q3);
+            pointsArray.push(q1);
+            pointsArray.push(q3);
+            pointsArray.push(q4);
+        }
+    }
+}
+
+//roatate for the lamp
+function rotateY(point, angle) {
+    var x = point[0];
+    var z = point[1];
+    var c = Math.cos(angle);
+    var s = Math.sin(angle);
+
+    return vec4(x * c - z * s, 0, x * s + z * c, 1);
+}
+
+//create radians
+function radians(degrees) {
+    return degrees * Math.PI / 180.0;
+}
+
 
 function render(){
 	 var s, t, r;
@@ -425,18 +597,7 @@ function render(){
     materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
     materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
     materialShininess = 50;
-
-    if(animateFlag == 1){
-      for(var i = 0; i<count; i++){
-        materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
-      }
-      for(var i = 0; i<count; i++){
-        materialSpecular = vec4( .3, .0, .0, 1.0 );  //this chooses the color
-      }
-    }
-    else {
-      materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
-    }
+    materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -444,12 +605,17 @@ function render(){
 
     changeColors();
 
-    //draws desk
+//draws desk
     DrawDesk();
 	  modelViewMatrix = mvMatrixStack.pop();
 
+    mvMatrixStack.push(modelViewMatrix);
+
     //drawBeanBag();
 
+    modelViewMatrix = mvMatrixStack.pop();
+
+//draws chair
     mvMatrixStack.push(modelViewMatrix);
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
     materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
@@ -463,7 +629,9 @@ function render(){
     changeColors();
 
     drawChair();
+    modelViewMatrix = mvMatrixStack.pop();
 
+//draws wall projector
     mvMatrixStack.push(modelViewMatrix);
 
     eye = [2, 2, 2];
@@ -484,6 +652,65 @@ function render(){
     changeColors();
 
     wallProjector();
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+// draw the bed
+    mvMatrixStack.push(modelViewMatrix);
+    t=translate(0.2, 0.2, 0.5);
+    modelViewMatrix=mult(modelViewMatrix, t);
+    DrawBed(0.4, 0.7, 0.1);
+    modelViewMatrix=mvMatrixStack.pop();
+
+
+//draws pillow
+    mvMatrixStack.push(modelViewMatrix);
+
+
+    modelViewMatrix = mat4();
+
+    materialAmbient = vec4( 1, 1, 1, 1.0 );
+    materialDiffuse = vec4( 1, 1, 1, 1.0);
+    materialSpecular = vec4( 1, 1, 1, 1.0 ); //this chooses the color
+    materialShininess = 0;
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+    s = scale4(.1,.1,.1);
+    t = translate(0.2,.3,0);
+    modelViewMatrix = mult(modelViewMatrix,s);
+    modelViewMatrix = mult(modelViewMatrix,t);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.TRIANGLES, 0, 14124);
+    gl.drawArrays(gl.TRIANGLES, 14124, 1100);
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+    mvMatrixStack.push(modelViewMatrix);
+
+
+    modelViewMatrix = mat4();
+
+    materialAmbient = vec4( 1, 1, 1, 1.0 );
+    materialDiffuse = vec4( 1, 1, 1, 1.0);
+    materialSpecular = vec4( 1, 1, 1, 1.0 ); //this chooses the color
+    materialShininess = 0;
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
+    s = scale4(.2,.2,.2);
+    t = translate(0,-3,-0.5);
+    modelViewMatrix = mult(modelViewMatrix,s);
+    modelViewMatrix = mult(modelViewMatrix,t);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.TRIANGLES, 0, 14000);
 
     modelViewMatrix = mvMatrixStack.pop();
 
@@ -651,7 +878,7 @@ function multiply(m, v){
 
 function quadBag(a, b, c, d) {
   var points=[a, b, c, d];
-   	var normal = Newell(points);
+   	var normal = bagNewll(points);
 
         // triangle abc
    	pointsArray.push(a);
@@ -677,11 +904,11 @@ function Newell(vertices1){
    var x=0, y=0, z=0;
    var index, nextIndex;
 
+
    for (var i=0; i<L; i++)
    {
        index=vertices1[i];
        nextIndex = vertices1[(i+1)%L];
-
 
        x += (vertices[index][1] - vertices[nextIndex][1])*
             (vertices[index][2] + vertices[nextIndex][2]);
@@ -693,6 +920,12 @@ function Newell(vertices1){
    }
 
    return (normalize(vec3(x, y, z)));
+}
+
+function bagNewll(vertices1){
+
+
+
 }
 
 function ExtrudedShape(){
