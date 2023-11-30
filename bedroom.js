@@ -215,7 +215,7 @@ function DrawDesk(){
     mvMatrixStack.push(modelViewMatrix);
 
     //front left
-    t = translate(.32, 0, 0);
+    t = translate(.2, 0, .05);
     r = rotate(90,-9,0,1);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
@@ -246,9 +246,9 @@ function drawChair(){
     mvMatrixStack.push(modelViewMatrix);
 
     //back of chair
-    t = translate(.76, 0.36, 0.6);
+    t = translate(.77, 0.35, 0.7);
     r = rotate(180,-1,0,1);
-    s = scale4(.02,.2,.15);
+    s = scale4(.02,.25,.15);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
     modelViewMatrix = mult(modelViewMatrix, s);
@@ -258,7 +258,7 @@ function drawChair(){
     modelViewMatrix = mvMatrixStack.pop();
     mvMatrixStack.push(modelViewMatrix);
 
-    t = translate(0.76, 0.25, .53);
+    t = translate(0.77, 0.25, .63);
     s = scale4(.15,.04,0.15);
     modelViewMatrix = mult(mult(modelViewMatrix, t),s);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -271,9 +271,9 @@ function drawChair(){
     mvMatrixStack.push(modelViewMatrix);
 
     //front left
-    t = translate(.7, .11, 0.49);
+    t = translate(.69, .11, 0.65);
     r = rotate(90,-9,0,1);
-    s = scale4(.4,.4,.5);
+    s = scale4(.46,.4,.5);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
     modelViewMatrix = mult(modelViewMatrix, s);
@@ -424,6 +424,7 @@ function render(){
     //changes desk colors
     materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
     materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
+    materialShininess = 50;
 
     if(animateFlag == 1){
       for(var i = 0; i<count; i++){
@@ -453,6 +454,7 @@ function render(){
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
     materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
     materialSpecular = vec4( .26, .168, .0, 1.0 ); //this chooses the color
+    materialShininess = 30;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -473,6 +475,7 @@ function render(){
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
     materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
     materialSpecular = vec4( .9, .855, .855, 1.0 ); //this chooses the color
+    materialShininess = 10;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -488,6 +491,7 @@ function render(){
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
     materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
     materialSpecular = vec4( .74, .679, .407, 1.0 ); //this chooses the color
+    materialShininess = 3;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -501,6 +505,7 @@ function render(){
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
     materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
     materialSpecular = vec4( .327, .771, .86, 1.0 ); //this chooses the color
+    materialShininess = 7;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -523,7 +528,7 @@ function render(){
   	DrawWall(0.02);
   	modelViewMatrix = mvMatrixStack.pop();
 
-    //requestAnimationFrame(render);
+    requestAnimationFrame(render);
 
 }
 
