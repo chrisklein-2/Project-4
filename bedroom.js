@@ -11,7 +11,7 @@ var modelViewMatrixLoc, projectionMatrixLoc;
 var mvMatrixStack=[];
 var indices = [];
 
-var zoomFactor = .8;
+var zoomFactor = .78;
 var translateFactorX = 0;
 var translateFactorY = 0.2;
 
@@ -110,8 +110,11 @@ window.onload = function init(){
     // generate the points/normals
     colorCube();
     tetrahedron(va, vb, vc, vd, numTimesToSubdivide);
-    GenPillowPoints();
-    //generateLampSurface();
+    //12324
+    GenPillowPoints(); //14124
+    GenBeanBagPoints(); //17706
+    generateLampSurface(); //18234
+
     // pass data onto GPU
     var nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -156,6 +159,48 @@ function changeColors(){
     gl.uniform4fv( gl.getUniformLocation(program, "lightPosition"),flatten(lightPosition) );
     gl.uniform1f( gl.getUniformLocation(program, "shininess"),materialShininess );
 }
+
+//Generate the bean bag points
+function GenBeanBagPoints() {
+    var slices = 2;
+    var stacks = 198;
+    var sliceInc = 2 * Math.PI / slices;
+    var stackInc = Math.PI / stacks;
+
+    for (var phi = 0; phi <= Math.PI; phi += stackInc) {
+        for (var theta = 0; theta <= 2 * Math.PI; theta += sliceInc) {
+            var distortFactor = 0.5 + 0.3 * Math.sin(1 * phi) * Math.cos(5 * theta); // Distortion factor
+
+            // Calculate distorted sphere points
+            var x = distortFactor * Math.sin(phi) * Math.cos(theta);
+            var y = distortFactor * Math.cos(phi);
+            var z = distortFactor * Math.sin(phi) * Math.sin(theta);
+
+            // Calculate points for the next slice and stack
+            var xNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta);
+            var yNext = distortFactor * Math.cos(phi + stackInc);
+            var zNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta);
+
+            var xThetaNext = distortFactor * Math.sin(phi) * Math.cos(theta + sliceInc);
+            var yThetaNext = distortFactor * Math.cos(phi);
+            var zThetaNext = distortFactor * Math.sin(phi) * Math.sin(theta + sliceInc);
+
+            // Define two triangles for each quad on the bean bag surface
+            pointsArray.push(vec4(x, y, z, 1));
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+
+            var xNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta + sliceInc);
+            var yNextThetaNext = distortFactor * Math.cos(phi + stackInc);
+            var zNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta + sliceInc);
+
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xNextThetaNext, yNextThetaNext, zNextThetaNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+        }
+    }
+}
+
 
 function GenPillowPoints() {
     var slices = 24;
@@ -257,8 +302,8 @@ function DrawDesk(){
     mvMatrixStack.push(modelViewMatrix);
 
     //front left
-    t = translate(.57, .05, .03);
-    r = rotate(90,-9,0,1);
+    t = translate(.57, .09, .03);
+    r = rotate(95,-9,0,1);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
     drawDeskLeg(0, .1);
@@ -269,7 +314,7 @@ function DrawDesk(){
     drawDeskLeg(0, .5);
 
     //back right
-    t = translate(.05, .2, 0);
+    t = translate(.05, .18, 0);
     modelViewMatrix = mult(modelViewMatrix, t);
     drawDeskLeg(0, .5);
 
@@ -314,7 +359,7 @@ function drawChair(){
 
     //front left
     t = translate(1.02, .15, 0.65);
-    r = rotate(90,-9,0,1);
+    r = rotate(95,-9,0,1);
     s = scale4(.46,.4,.5);
     modelViewMatrix = mult(modelViewMatrix, t);
     modelViewMatrix = mult(modelViewMatrix, r);
@@ -339,56 +384,6 @@ function drawChair(){
 
     modelViewMatrix = mvMatrixStack.pop();
 
-
-}
-
-function drawBeanBag(){
-  var sliceInc = 2*Math.PI/slices;
-  var stackInc = Math.PI/stacks;
-
-  var prev, curr;
-  var curr1, curr2, prev1, prev2;
-
-
-  var half=[];
-  var count=0;
-      // generate half circle: PI/2 (0) --> -PI/2 (stack)
-  for (var phi=Math.PI/2; phi>=-Math.PI/2; phi-=stackInc) {
-      half.push(vec4(radius*Math.cos(phi), radius*Math.sin(phi), 0, 1));
-  }
-
-  prev = half;
-      // rotate around y axis
-  var m = rotate(360/slices, 0, 1, 0);
-  for (var i=1; i<=slices; i++) {
-      var curr=[]
-
-          // compute the new set of points with one rotation
-      for (var j=0; j<=stacks; j++) {
-          var v4 = multiply(m, prev[j]);
-          curr.push( v4 );
-      }
-
-          // top of the sphere j=0 case
-          //triangle(prev[0], prev[1], curr[1]);
-      triangle(prev[0], curr[1], prev[1]);
-
-          // create the triangles for this slice
-      for (var j=1; j<stacks-1; j++) {
-          prev1 = prev[j];
-          prev2 = prev[j+1];
-
-          curr1 = curr[j];
-          curr2 = curr[j+1];
-
-          quadBag(prev1, curr1, curr2, prev2);
-      }
-
-          // bottom of the sphere j=stacks case
-      triangle(prev[stacks], prev[stacks-1], curr[stacks-1]);
-
-      prev = curr;
-    }
 
 }
 
@@ -518,7 +513,6 @@ function DrawBed(bedLength, bedWidth, bedHeight) {
     changeColors();
 
 
-
     s = scale4(bedLength, bedHeight, bedWidth); // Scale to the bed dimensions
     t = translate(.256, 0 ,0);
 
@@ -533,31 +527,43 @@ function DrawBed(bedLength, bedWidth, bedHeight) {
 
 //make the Surface of Revolutions lamp
 function generateLampSurface() {
-    var angleStep = 10; // degrees for each step of revolution
+  var slices = 15;
+   var stacks = 7;
+   var sliceInc = 3 * Math.PI / slices;
+   var stackInc = Math.PI / stacks;
 
-    for (var i = 0; i < lampProfile.length - 1; i++) {
-        var p1 = lampProfile[i];
-        var p2 = lampProfile[i + 1];
+   for (var phi = 0; phi <= Math.PI; phi += stackInc) {
+       for (var theta = 0; theta <= 2 * Math.PI; theta += sliceInc) {
+           var distortFactor = 0.2 + 0.3 * Math.sin(1 * phi) * Math.cos(5 * theta); // Distortion factor
 
-        for (var j = 0; j <= 360; j += angleStep) {
-            var angle = radians(j);
-            var angleNext = radians(j + angleStep);
+           // Calculate distorted sphere points
+           var x = distortFactor * Math.sin(phi) * Math.cos(theta);
+           var y = distortFactor * Math.cos(phi);
+           var z = distortFactor * Math.sin(phi) * Math.sin(theta);
 
-            // Four points of the quad
-            var q1 = rotateY(p1, angle);
-            var q2 = rotateY(p2, angle);
-            var q3 = rotateY(p2, angleNext);
-            var q4 = rotateY(p1, angleNext);
+           // Calculate points for the next slice and stack
+           var xNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta);
+           var yNext = distortFactor * Math.cos(phi + stackInc);
+           var zNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta);
 
-            // Add points to the array
-            pointsArray.push(q1);
-            pointsArray.push(q2);
-            pointsArray.push(q3);
-            pointsArray.push(q1);
-            pointsArray.push(q3);
-            pointsArray.push(q4);
-        }
-    }
+           var xThetaNext = distortFactor * Math.sin(phi) * Math.cos(theta + sliceInc);
+           var yThetaNext = distortFactor * Math.cos(phi);
+           var zThetaNext = distortFactor * Math.sin(phi) * Math.sin(theta + sliceInc);
+
+           // Define two triangles for each quad on the bean bag surface
+           pointsArray.push(vec4(x, y, z, 1));
+           pointsArray.push(vec4(xNext, yNext, zNext, 1));
+           pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+
+           var xNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta + sliceInc);
+           var yNextThetaNext = distortFactor * Math.cos(phi + stackInc);
+           var zNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta + sliceInc);
+
+           pointsArray.push(vec4(xNext, yNext, zNext, 1));
+           pointsArray.push(vec4(xNextThetaNext, yNextThetaNext, zNextThetaNext, 1));
+           pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+       }
+   }
 }
 
 //roatate for the lamp
@@ -587,7 +593,6 @@ function render(){
  	  gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 	  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
-
     mvMatrixStack.push(modelViewMatrix);
     t = translate(0.4, 0, 0.4);
     modelViewMatrix = mult(modelViewMatrix, t);
@@ -609,12 +614,6 @@ function render(){
     DrawDesk();
 	  modelViewMatrix = mvMatrixStack.pop();
 
-    mvMatrixStack.push(modelViewMatrix);
-
-    //drawBeanBag();
-
-    modelViewMatrix = mvMatrixStack.pop();
-
 //draws chair
     mvMatrixStack.push(modelViewMatrix);
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
@@ -627,8 +626,8 @@ function render(){
     specularProduct = mult(lightSpecular, materialSpecular);
 
     changeColors();
-
     drawChair();
+
     modelViewMatrix = mvMatrixStack.pop();
 
 //draws wall projector
@@ -666,38 +665,42 @@ function render(){
 //draws pillow
     mvMatrixStack.push(modelViewMatrix);
 
-
     modelViewMatrix = mat4();
 
-    materialAmbient = vec4( 1, 1, 1, 1.0 );
-    materialDiffuse = vec4( 1, 1, 1, 1.0);
-    materialSpecular = vec4( 1, 1, 1, 1.0 ); //this chooses the color
-    materialShininess = 0;
+    materialAmbient = vec4( .9, .9, 1, 1.0 );
+    materialDiffuse = vec4( 1, .9, 1, 1.0);
+    materialSpecular = vec4( .8, .8, .9, 1.0 ); //this chooses the color
+    materialShininess = 1;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
 
+//points start at 12324 ends at 14124
     changeColors();
-    s = scale4(.1,.1,.1);
+    s = scale4(.1,.07,.09);
     t = translate(0.2,.3,0);
+  //  modelViewMatrix = mult(modelViewMatrix,s);
+    //modelViewMatrix = mult(modelViewMatrix,t);
+  //  s = scale4(.1,.1,0);
+  //  t = translate(0.2,.2,.5);
     modelViewMatrix = mult(modelViewMatrix,s);
     modelViewMatrix = mult(modelViewMatrix,t);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-    gl.drawArrays(gl.TRIANGLES, 0, 14124);
-    gl.drawArrays(gl.TRIANGLES, 14124, 1100);
+    gl.drawArrays(gl.TRIANGLES, 0,12000);
+    //gl.drawArrays(gl.TRIANGLES, 12324, 1800);
 
     modelViewMatrix = mvMatrixStack.pop();
 
+//draws bean bag
     mvMatrixStack.push(modelViewMatrix);
-
 
     modelViewMatrix = mat4();
 
-    materialAmbient = vec4( 1, 1, 1, 1.0 );
-    materialDiffuse = vec4( 1, 1, 1, 1.0);
-    materialSpecular = vec4( 1, 1, 1, 1.0 ); //this chooses the color
-    materialShininess = 0;
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
+    materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
+    materialSpecular = vec4( .9, .1, .1, 1.0 ); //this chooses the color
+    materialShininess = 10;
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -706,12 +709,49 @@ function render(){
     changeColors();
 
     s = scale4(.2,.2,.2);
-    t = translate(0,-3,-0.5);
+    t = translate(-1,-3,-0.5);
     modelViewMatrix = mult(modelViewMatrix,s);
     modelViewMatrix = mult(modelViewMatrix,t);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-    gl.drawArrays(gl.TRIANGLES, 0, 14000);
+    gl.drawArrays(gl.TRIANGLES, 14124, 3582);
+    modelViewMatrix = mvMatrixStack.pop();
 
+
+//draws lampProfile
+    mvMatrixStack.push(modelViewMatrix);
+
+    modelViewMatrix = mat4();
+    if(isBlinking == false){
+      materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
+      materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
+      materialSpecular = vec4( .9, .1, .1, 1.0 ); //this chooses the color
+      materialShininess = 20;
+
+      ambientProduct = mult(lightAmbient, materialAmbient);
+      diffuseProduct = mult(lightDiffuse, materialDiffuse);
+      specularProduct = mult(lightSpecular, materialSpecular);
+
+      changeColors();
+    }
+    else{
+      materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
+      materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
+      materialSpecular = vec4( .1, .9, .1, 1.0 ); //this chooses the color
+      materialShininess = 20;
+
+      ambientProduct = mult(lightAmbient, materialAmbient);
+      diffuseProduct = mult(lightDiffuse, materialDiffuse);
+      specularProduct = mult(lightSpecular, materialSpecular);
+
+      changeColors();
+    }
+
+    s = scale4(.2,.2,.2);
+    t = translate(2.7,-1.3,-0.5);
+    modelViewMatrix = mult(modelViewMatrix,s);
+    modelViewMatrix = mult(modelViewMatrix,t);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.TRIANGLES, 17706, 528);
     modelViewMatrix = mvMatrixStack.pop();
 
     //changes wall colors
@@ -747,7 +787,7 @@ function render(){
 	  DrawWall(0.02);
   	modelViewMatrix = mvMatrixStack.pop();
 
-  	// Back Wall
+  	//Right Wall
   	mvMatrixStack.push(modelViewMatrix);
   	r = rotate(-90, 1.0, 0.0, 0.0);
 
@@ -920,12 +960,6 @@ function Newell(vertices1){
    }
 
    return (normalize(vec3(x, y, z)));
-}
-
-function bagNewll(vertices1){
-
-
-
 }
 
 function ExtrudedShape(){
