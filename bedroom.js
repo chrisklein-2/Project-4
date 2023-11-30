@@ -35,38 +35,29 @@ var at = [.1, .1, 0];
 var up = [0, 1, 0];
 var radius = 1;
 var phi = 90;
-var theta = 0;
-var verticesx = [vec4(2, 0, 0, 1),
-                 vec4(0, 0, 2, 1),
-                 vec4(0, 0, 0, 1)
-				 ];
+var xAxis = 0;
+var yAxis = 1;
+var zAxis = 2;
+var axis = 0;
+var theta =[0, 0, 0];
 
 
 var N, N_Triangle;
 
 var sphereCount = 0;
 
+//18 points
 var vertices = [
-        vec4( -0.5, -0.5,  0.5, 1.0 ),
-        vec4( -0.5,  0.5,  0.5, 1.0 ),
-        vec4( 0.5,  0.5,  0.5, 1.0 ),
-        vec4( 0.5, -0.5,  0.5, 1.0 ),
-        vec4( -0.5, -0.5, -0.5, 1.0 ),
-        vec4( -0.5,  0.5, -0.5, 1.0 ),
-        vec4( 0.5,  0.5, -0.5, 1.0 ),
-        vec4( 0.5, -0.5, -0.5, 1.0 ),
-        vec4( 0, 0, 1, 1),  //A(8)
-        vec4( 1, 0, 0, 1),  //B(9)
-        vec4( 1, 1 ,0, 1),  //C(10)
-        vec4( .5, 1,5, 0, 1),  //D(11)
-        vec4( 0, 1, 0, 1),  //E(12)
-        vec4( 0, 0, 1, 1),  //F(13)
-        vec4( 1, 0, 1, 1),  //G(14)
-        vec4( 1, 1 ,1, 1),  //H(15)
-        vec4( .5, 1,5, 1, 1),  //I(16)
-        vec4( 0, 1, 1, 1)   //J(17)
+      vec4( -0.5, -0.5,  0.5, 1.0 ),
+      vec4( -0.5,  0.5,  0.5, 1.0 ),
+      vec4( 0.5,  0.5,  0.5, 1.0 ),
+      vec4( 0.5, -0.5,  0.5, 1.0 ),
+      vec4( -0.5, -0.5, -0.5, 1.0 ),
+      vec4( -0.5,  0.5, -0.5, 1.0 ),
+      vec4( 0.5,  0.5, -0.5, 1.0 ),
+      vec4( 0.5, -0.5, -0.5, 1.0 ),
 
-    ];
+       ];
 
 var va = vec4(0.0, 0.0, -1.0,1);
 var vb = vec4(0.0, 0.942809, 0.333333, 1);
@@ -82,7 +73,7 @@ var lightSpecular = vec4( 1.0, 1.0, 1.0, 1.0 );
 var materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
 var materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
 var materialSpecular = vec4( .327, .771, .86, 1.0 );
-var materialShininess = 1;
+var materialShininess = 1.5;
 
 
 window.onload = function init(){
@@ -164,10 +155,9 @@ function changeColors(){
 function DrawSolidCube(length){
 	mvMatrixStack.push(modelViewMatrix);
 	s=scale4(length, length, length );   // scale to the given width/height/depth
-    modelViewMatrix = mult(modelViewMatrix, s);
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-
-    gl.drawArrays( gl.TRIANGLES, 0, 36);
+  modelViewMatrix = mult(modelViewMatrix, s);
+  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+  gl.drawArrays( gl.TRIANGLES, 0, 36);
 
 	modelViewMatrix=mvMatrixStack.pop();
 }
@@ -250,6 +240,66 @@ function DrawDesk(){
 
 }
 
+function drawChair(){
+
+    var t,r,s;
+    mvMatrixStack.push(modelViewMatrix);
+
+    //back of chair
+    t = translate(.76, 0.36, 0.6);
+    r = rotate(180,-1,0,1);
+    s = scale4(.02,.2,.15);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    modelViewMatrix = mult(modelViewMatrix, r);
+    modelViewMatrix = mult(modelViewMatrix, s);
+
+    DrawSolidCube(1);
+
+    modelViewMatrix = mvMatrixStack.pop();
+    mvMatrixStack.push(modelViewMatrix);
+
+    t = translate(0.76, 0.25, .53);
+    s = scale4(.15,.04,0.15);
+    modelViewMatrix = mult(mult(modelViewMatrix, t),s);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+
+    DrawSolidCube(1);
+    modelViewMatrix = mvMatrixStack.pop();
+
+    //draw legs
+    mvMatrixStack.push(modelViewMatrix);
+
+    //front left
+    t = translate(.7, .11, 0.49);
+    r = rotate(90,-9,0,1);
+    s = scale4(.4,.4,.5);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    modelViewMatrix = mult(modelViewMatrix, r);
+    modelViewMatrix = mult(modelViewMatrix, s);
+
+    drawDeskLeg(0, .1);
+
+    //front right
+    t = translate(.3, -.5, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+    //back right
+    t = translate(.05, .2, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+    //back left
+    t = translate(-.2, 0, 0);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    drawDeskLeg(0, .5);
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+
+}
+
 function drawBeanBag(){
   var sliceInc = 2*Math.PI/slices;
   var stackInc = Math.PI/stacks;
@@ -305,7 +355,10 @@ function ExtrudedTriangle(){
     // only change these two variables: vertices and height
 
     var height=2;
-
+    verticesx = [    vec4(2, 0, 0, 1),
+                     vec4(0, 0, 2, 1),
+                     vec4(0, 0, 0, 1)
+    				 ];
     N=N_Triangle = verticesx.length;
 
     // add the second set of points
@@ -317,37 +370,43 @@ function ExtrudedTriangle(){
     ExtrudedShape();
 }
 
-function starLightFixture(){
+function wallProjector(){
 
     ExtrudedTriangle();
-    N=N_Triangle;
 
+    mvMatrixStack.push(modelViewMatrix);
+
+    N=N_Triangle;
     var count = vertices.length;
     var r,s,t;
-    
     for(var i = 0; i<verticesx.length; i++){
         vertices.push(verticesx[i]);
     }
 
-    mvMatrixStack.push(modelViewMatrix);
-
+  	r = rotate(48.0, 1.0, 0.0, 1.0);
+    t = translate(2, 2.5, 2);
+    s = scale4(.15, .15, .1);
+    modelViewMatrix = mult(modelViewMatrix, t);
+    modelViewMatrix = mult(modelViewMatrix, r);
+    modelViewMatrix = mult(modelViewMatrix, s);
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
+    gl.drawArrays(gl.TRIANGLES, 12, 24);
+    t = translate(2.9, 1.9, 0.9);
+    s = scale4(1.9,.2,.1);
+    r = rotate(140, -1, 0,1);
+    modelViewMatrix = mult(mult(modelViewMatrix, t),r);
+    modelViewMatrix = mult(modelViewMatrix, s);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
-  //	r = rotate(90.0, 0.0, 0.0, 1.0);
-    t = translate(-1,-10,0);
-    modelViewMatrix = mult(modelViewMatrix, t);
-    //modelViewMatrix = mult(modelViewMatrix, r);
+    DrawSolidCube(1);
+    modelViewMatrix = mvMatrixStack.pop();
 
-//count + (6*N+1*3*2)
-    gl.drawArrays(gl.TRIANGLES, count, 4);
-
-    mvMatrixStack.pop();
 }
 
 function render(){
 	 var s, t, r;
-
+   var count = 2000;
 	  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
    	// set up view and projection
@@ -361,16 +420,23 @@ function render(){
     t = translate(0.4, 0, 0.4);
     modelViewMatrix = mult(modelViewMatrix, t);
 
-    //changes desk colors
 
+    //changes desk colors
     materialAmbient = vec4( 0.2, 0.2, 0.2, 1.0);
     materialDiffuse = vec4( 0.8, 0.4, 0.4, 1.0);
-    if(animateFlag == 0)
-        materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
-    else {
-        materialSpecular = vec4( .3, .0, .0, 1.0 );  //this chooses the color
 
+    if(animateFlag == 1){
+      for(var i = 0; i<count; i++){
+        materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
+      }
+      for(var i = 0; i<count; i++){
+        materialSpecular = vec4( .3, .0, .0, 1.0 );  //this chooses the color
+      }
     }
+    else {
+      materialSpecular = vec4( .14, .0, .0, 1.0 );  //this chooses the color
+    }
+
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
     specularProduct = mult(lightSpecular, materialSpecular);
@@ -381,22 +447,47 @@ function render(){
     DrawDesk();
 	  modelViewMatrix = mvMatrixStack.pop();
 
-    mvMatrixStack.push(modelViewMatrix);
-
     //drawBeanBag();
 
+    mvMatrixStack.push(modelViewMatrix);
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+    materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+    materialSpecular = vec4( .26, .168, .0, 1.0 ); //this chooses the color
 
-    //gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
-    //gl.drawArrays(gl.TRIANGLES, 12324, 1295);
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
 
-    //starLightFixture();
+    changeColors();
+
+    drawChair();
+
+    mvMatrixStack.push(modelViewMatrix);
+
+    eye = [2, 2, 2];
+    at = [0, 0, 0];
+    up = [0, 1, 0];
+
+    modelViewMatrix = lookAt(eye, at, up);
+
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
+    materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
+    materialSpecular = vec4( .9, .855, .855, 1.0 ); //this chooses the color
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
+    wallProjector();
 
     modelViewMatrix = mvMatrixStack.pop();
 
     //changes wall colors
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
     materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
-    materialSpecular = vec4( .327, .771, .86, 1.0 ); //this chooses the color
+    materialSpecular = vec4( .74, .679, .407, 1.0 ); //this chooses the color
 
     ambientProduct = mult(lightAmbient, materialAmbient);
     diffuseProduct = mult(lightDiffuse, materialDiffuse);
@@ -407,11 +498,21 @@ function render(){
   	// Floor
   	DrawWall(0.02);
 
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+    materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+    materialSpecular = vec4( .327, .771, .86, 1.0 ); //this chooses the color
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
   	// Left wall
   	mvMatrixStack.push(modelViewMatrix);
   	r = rotate(90.0, 0.0, 0.0, 1.0);
     modelViewMatrix = mult(modelViewMatrix, r);
-  	DrawWall(0.02);
+	  DrawWall(0.02);
   	modelViewMatrix = mvMatrixStack.pop();
 
   	// Back Wall
@@ -422,7 +523,7 @@ function render(){
   	DrawWall(0.02);
   	modelViewMatrix = mvMatrixStack.pop();
 
-    requestAnimationFrame(render);
+    //requestAnimationFrame(render);
 
 }
 
@@ -526,7 +627,6 @@ function extQuad(a, b, c, d) {
      normalsArray.push(normal);
 }
 
-
 function scale4(a, b, c) {
    	var result = mat4();
    	result[0][0] = a;
@@ -574,16 +674,16 @@ function Newell(vertices1){
 
    for (var i=0; i<L; i++)
    {
-       index=i;
-       nextIndex = (i+1)%L;
+       index=vertices1[i];
+       nextIndex = vertices1[(i+1)%L];
 
 
-       x += (verticesx[index][1] - verticesx[nextIndex][1])*
-            (verticesx[index][2] + verticesx[nextIndex][2]);
-       y += (verticesx[index][2] - verticesx[nextIndex][2])*
-            (verticesx[index][0] + verticesx[nextIndex][0]);
-       z += (verticesx[index][0] - verticesx[nextIndex][0])*
-            (verticesx[index][1] + verticesx[nextIndex][1]);
+       x += (vertices[index][1] - vertices[nextIndex][1])*
+            (vertices[index][2] + vertices[nextIndex][2]);
+       y += (vertices[index][2] - vertices[nextIndex][2])*
+            (vertices[index][0] + vertices[nextIndex][0]);
+       z += (vertices[index][0] - vertices[nextIndex][0])*
+            (vertices[index][1] + vertices[nextIndex][1]);
 
    }
 
@@ -633,13 +733,13 @@ function polygon(indices1){
     // ...
     for (var i=0; i<M-2; i++)
     {
-        pointsArray.push(verticesx[indices1[0]]);
+        pointsArray.push(vertices[indices1[0]]);
         normalsArray.push(normal);
 
-        pointsArray.push(verticesx[indices1[prev]]);
+        pointsArray.push(vertices[indices1[prev]]);
         normalsArray.push(normal);
 
-        pointsArray.push(verticesx[indices1[next]]);
+        pointsArray.push(vertices[indices1[next]]);
         normalsArray.push(normal);
 
         prev=next;
