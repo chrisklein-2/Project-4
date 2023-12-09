@@ -138,15 +138,51 @@ window.onload = function init(){
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
 
+    document.getElementById("zoomIn").onclick=function(){zoomFactor *= 0.95;};
+     document.getElementById("zoomOut").onclick=function(){zoomFactor *= 1.05;};
+     document.getElementById("left").onclick=function(){translateFactorX -= 0.1;};
+     document.getElementById("right").onclick=function(){translateFactorX += 0.1;};
+     document.getElementById("up").onclick=function(){translateFactorY += 0.1;};
+     document.getElementById("down").onclick=function(){translateFactorY -= 0.1;};
+    // keyboard handle
 
-    window.addEventListener("keydown", function () {
 
-          //makes the a key animate
-          if (event.keyCode == 65) {
-              isBlinking = !isBlinking;
-              render();
+    document.onkeydown = function HandleKeyboard(event)
+      {
+          //alert(event.keyCode);
+          switch (event.keyCode)
+          {
+          case 37:  // left cursor key
+                    translateFactorX -= 0.1;
+                    break;
+          case 39:   // right cursor key
+                    translateFactorX += 0.1;
+                    break;
+          case 38:   // up cursor key
+                    translateFactorY += 0.1;
+                    break;
+          case 40:    // down cursor key
+                    translateFactorY -= 0.1;
+                    break;
+          case 107:  // + cursor key
+                    zoomFactor *= 0.95;
+                    break;
+          case 109:  // - cursor key
+                    zoomFactor *= 1.05;
+                    break;
+          case 66:  // b cursor key
+
+                    zoomFactor = 0.78;
+                    translateFactorX = 0.;
+                    translateFactorY = 0.2;
+                    break;
+          case 65:  // a cursor key
+                    roFlag = !roFlag;
+                    break;
+          default:
+                break;
           }
-        });
+      }
 
 
     render();
@@ -790,8 +826,10 @@ function render(){
   	//Right Wall
   	mvMatrixStack.push(modelViewMatrix);
   	r = rotate(-90, 1.0, 0.0, 0.0);
-
+    t = translate(-0.01,.2,.15);
     modelViewMatrix = mult(modelViewMatrix, r);
+    modelViewMatrix = mult(modelViewMatrix, t);
+
   	DrawWall(0.02);
   	modelViewMatrix = mvMatrixStack.pop();
 
