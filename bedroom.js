@@ -34,12 +34,13 @@ var eye = [.3, .6, .6];
 var at = [.1, .1, 0];
 var up = [0, 1, 0];
 var radius = 1;
-var phi = 90;
 var xAxis = 0;
 var yAxis = 1;
 var zAxis = 2;
 var axis = 0;
-var theta =[0, 0, 0];
+
+var phi = 0;
+var theta = 0;
 
 var N, N_Triangle;
 
@@ -139,46 +140,40 @@ window.onload = function init(){
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
 
     document.getElementById("zoomIn").onclick=function(){zoomFactor *= 0.95;};
-     document.getElementById("zoomOut").onclick=function(){zoomFactor *= 1.05;};
-     document.getElementById("left").onclick=function(){translateFactorX -= 0.1;};
-     document.getElementById("right").onclick=function(){translateFactorX += 0.1;};
-     document.getElementById("up").onclick=function(){translateFactorY += 0.1;};
-     document.getElementById("down").onclick=function(){translateFactorY -= 0.1;};
-    // keyboard handle
-
+    document.getElementById("zoomOut").onclick=function(){zoomFactor *= 1.05;};
+    document.getElementById("left").onclick=function(){translateFactorX -= 0.1;};
+    document.getElementById("right").onclick=function(){translateFactorX += 0.1;};
+    document.getElementById("up").onclick=function(){translateFactorY += 0.1;};
+    document.getElementById("down").onclick=function(){translateFactorY -= 0.1;};
+    document.getElementById("up").onclick=function(){translateFactorY += 0.1;};
+    document.getElementById("down").onclick=function(){translateFactorY -= 0.1;};
+    document.getElementById("thetaUp").onclick=function(){theta += 0.1;};
+    document.getElementById("thetaDown").onclick=function(){theta -= 0.1;};
+    document.getElementById("phiUp").onclick=function(){phi += 0.1;};
+    document.getElementById("phiDown").onclick=function(){phi -= 0.1;};
 
     document.onkeydown = function HandleKeyboard(event)
       {
+
           //alert(event.keyCode);
           switch (event.keyCode)
           {
-          case 37:  // left cursor key
-                    translateFactorX -= 0.1;
-                    break;
-          case 39:   // right cursor key
-                    translateFactorX += 0.1;
-                    break;
-          case 38:   // up cursor key
-                    translateFactorY += 0.1;
-                    break;
-          case 40:    // down cursor key
-                    translateFactorY -= 0.1;
-                    break;
-          case 107:  // + cursor key
-                    zoomFactor *= 0.95;
-                    break;
-          case 109:  // - cursor key
-                    zoomFactor *= 1.05;
-                    break;
+
           case 66:  // b cursor key
 
                     zoomFactor = 0.78;
                     translateFactorX = 0.;
                     translateFactorY = 0.2;
+                    phi = 0;
+                    theta = 0;
                     break;
-          case 65:  // a cursor key
-                    roFlag = !roFlag;
-                    break;
+          case 65:  //a key
+                if(isBlinking == false)
+                  isBlinking = true;
+                else
+                  isBlinking = false;
+                break;
+
           default:
                 break;
           }
@@ -465,8 +460,10 @@ function wallProjector(){
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 
     gl.drawArrays(gl.TRIANGLES, 12, 24);
-    t = translate(2.9, 1.9, 0.9);
-    s = scale4(1.9,.2,.1);
+
+    //draws pole
+    t = translate(3.5, 2.8, -.5);
+    s = scale4(4.9,.2,.1);
     r = rotate(140, -1, 0,1);
     modelViewMatrix = mult(mult(modelViewMatrix, t),r);
     modelViewMatrix = mult(modelViewMatrix, s);
@@ -617,14 +614,51 @@ function radians(degrees) {
     return degrees * Math.PI / 180.0;
 }
 
+function drawScreen(){
+
+  var s,t,r;
+
+  //draw flat screen
+  t = translate(.51, .75, 0);
+  s = scale4(.61,.02,.39);
+  r = rotate(80,15,0,1);
+  modelViewMatrix = mult(mult(modelViewMatrix, t),r);
+  modelViewMatrix = mult(modelViewMatrix, s);
+  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+  DrawSolidCube(1);
+
+  s = scale4(.8,.2,.9);
+  t = translate(0,.8,0);
+  modelViewMatrix = mult(modelViewMatrix,t);
+  modelViewMatrix = mult(modelViewMatrix, s);
+  gl.uniformMatrix4fv(modelViewMatrixLoc,false,flatten(modelViewMatrix));
+
+  materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
+  materialDiffuse = vec4( 0.1, 0.1, 0.1, 1.0);
+  materialSpecular = vec4( .26, .168, .0, 1.0 ); //this chooses the color
+  materialShininess = 30;
+
+  ambientProduct = mult(lightAmbient, materialAmbient);
+  diffuseProduct = mult(lightDiffuse, materialDiffuse);
+  specularProduct = mult(lightSpecular, materialSpecular);
+
+  changeColors();
+
+  DrawSolidCube(1);
+
+}
 
 function render(){
 	 var s, t, r;
    var count = 2000;
 	  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+    var change = phi;
+    var change2 = theta;
    	// set up view and projection
    	projectionMatrix = ortho(left*zoomFactor-translateFactorX, right*zoomFactor-translateFactorX, bottom*zoomFactor-translateFactorY, ytop*zoomFactor-translateFactorY, near, far);
+    eye[0] += change;
+    eye[1] += change2;
    	modelViewMatrix = lookAt(eye, at, up);
  	  gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 	  gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -669,7 +703,9 @@ function render(){
 //draws wall projector
     mvMatrixStack.push(modelViewMatrix);
 
-    eye = [2, 2, 2];
+
+
+    eye = [2+change, 2+change2, 2];
     at = [0, 0, 0];
     up = [0, 1, 0];
 
@@ -687,6 +723,13 @@ function render(){
     changeColors();
 
     wallProjector();
+
+    modelViewMatrix = mvMatrixStack.pop();
+
+//draws screen on the wall
+    mvMatrixStack.push(modelViewMatrix);
+
+    drawScreen();
 
     modelViewMatrix = mvMatrixStack.pop();
 
