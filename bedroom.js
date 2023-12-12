@@ -1,4 +1,5 @@
 //Christopher Klein
+//Marlene Habib
 //CSCI 4250
 //Project 4
 
@@ -11,7 +12,7 @@ var modelViewMatrixLoc, projectionMatrixLoc;
 var mvMatrixStack=[];
 var indices = [];
 
-var zoomFactor = .78;
+var zoomFactor = 1;
 var translateFactorX = 0;
 var translateFactorY = 0.2;
 
@@ -21,7 +22,12 @@ var slices = 24, stacks = 10;
 var pointsArray = [];
 var normalsArray = [];
 
+//sets of light animation
 var isBlinking = false;
+var lampLightIntensity = 1.0;
+var blinkSpeed = 0.10; // Speed of blinking
+var increasingIntensity = true; // Direction of intensity change
+var sounds = [];
 
 var left = -1;
 var right = 1;
@@ -116,6 +122,8 @@ window.onload = function init(){
     GenBeanBagPoints(); //17706
     generateLampSurface(); //18234
 
+    GenTentPoints();
+
     // pass data onto GPU
     var nBuffer = gl.createBuffer();
     gl.bindBuffer( gl.ARRAY_BUFFER, nBuffer);
@@ -139,6 +147,8 @@ window.onload = function init(){
     modelViewMatrixLoc = gl.getUniformLocation( program, "modelViewMatrix" );
     projectionMatrixLoc = gl.getUniformLocation( program, "projectionMatrix" );
 
+    sounds.push(new Audio("lights3.mp3"));
+
     document.getElementById("zoomIn").onclick=function(){zoomFactor *= 0.95;};
     document.getElementById("zoomOut").onclick=function(){zoomFactor *= 1.05;};
     document.getElementById("left").onclick=function(){translateFactorX -= 0.1;};
@@ -161,17 +171,21 @@ window.onload = function init(){
 
           case 66:  // b cursor key
 
-                    zoomFactor = 0.78;
+                    zoomFactor = 1;
                     translateFactorX = 0.;
                     translateFactorY = 0.2;
                     phi = 0;
                     theta = 0;
                     break;
           case 65:  //a key
-                if(isBlinking == false)
+                if(isBlinking == false){
                   isBlinking = true;
-                else
+                  sounds[0].play();
+                }
+                else{
                   isBlinking = false;
+                  sounds[0].play();
+                }
                 break;
 
           default:
@@ -232,6 +246,44 @@ function GenBeanBagPoints() {
     }
 }
 
+function GenTentPoints() {
+    var slices = 1;
+    var stacks = 10;
+    var sliceInc = 1 * Math.PI / slices;
+    var stackInc = 4 * Math.PI / stacks;
+
+    for (var phi = 0; phi <= Math.PI; phi += stackInc) {
+        for (var theta = 0; theta <= 2 * Math.PI; theta += sliceInc) {
+            var distortFactor = 0.5 + 0.3 * Math.sin(1 * phi) * Math.cos(5 * theta); // Distortion factor
+
+            var x = distortFactor * Math.sin(phi) * Math.cos(theta);
+            var y = distortFactor * Math.cos(phi);
+            var z = distortFactor * Math.sin(phi) * Math.sin(theta);
+
+            // Calculate points for the next slice and stack
+            var xNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta);
+            var yNext = distortFactor * Math.cos(phi + stackInc);
+            var zNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta);
+
+            var xThetaNext = distortFactor * Math.sin(phi) * Math.cos(theta + sliceInc);
+            var yThetaNext = distortFactor * Math.cos(phi);
+            var zThetaNext = distortFactor * Math.sin(phi) * Math.sin(theta + sliceInc);
+
+            // Define two triangles for each quad on the bean bag surface
+            pointsArray.push(vec4(x, y, z, 1));
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+
+            var xNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.cos(theta + sliceInc);
+            var yNextThetaNext = distortFactor * Math.cos(phi + stackInc);
+            var zNextThetaNext = distortFactor * Math.sin(phi + stackInc) * Math.sin(theta + sliceInc);
+
+            pointsArray.push(vec4(xNext, yNext, zNext, 1));
+            pointsArray.push(vec4(xNextThetaNext, yNextThetaNext, zNextThetaNext, 1));
+            pointsArray.push(vec4(xThetaNext, yThetaNext, zThetaNext, 1));
+        }
+    }
+}
 
 function GenPillowPoints() {
     var slices = 24;
@@ -269,7 +321,6 @@ function GenPillowPoints() {
     }
 }
 
-
 function DrawSolidCube(length){
 	mvMatrixStack.push(modelViewMatrix);
 	s=scale4(length, length, length );   // scale to the given width/height/depth
@@ -287,8 +338,8 @@ function DrawWall(thickness){
 	// draw thin wall with top = xz-plane, corner at origin
 	mvMatrixStack.push(modelViewMatrix);
 
-	t = translate(0.65, 0.5*thickness, 0.5);
-	s = scale4(1.3, thickness, 1.4);
+	t = translate(1.09, 0.5*thickness, 0.5);
+	s = scale4(2.2, thickness, 2.0);
   modelViewMatrix = mult(mult(modelViewMatrix, t), s);
 	gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 	DrawSolidCube(1);
@@ -462,8 +513,8 @@ function wallProjector(){
     gl.drawArrays(gl.TRIANGLES, 12, 24);
 
     //draws pole
-    t = translate(3.5, 2.8, -.5);
-    s = scale4(4.9,.2,.1);
+    t = translate(6.5, 5.2, -1.5);
+    s = scale4(10.9,.2,.1);
     r = rotate(140, -1, 0,1);
     modelViewMatrix = mult(mult(modelViewMatrix, t),r);
     modelViewMatrix = mult(modelViewMatrix, s);
@@ -619,7 +670,7 @@ function drawScreen(){
   var s,t,r;
 
   //draw flat screen
-  t = translate(.51, .75, 0);
+  t = translate(.51, .75, -0.45);
   s = scale4(.61,.02,.39);
   r = rotate(80,15,0,1);
   modelViewMatrix = mult(mult(modelViewMatrix, t),r);
@@ -650,11 +701,12 @@ function drawScreen(){
 }
 
 function render(){
-	 var s, t, r;
-   var count = 2000;
+	  var s, t, r;
+    var count = 2000;
 	  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     var change = phi;
     var change2 = theta;
+
    	// set up view and projection
    	projectionMatrix = ortho(left*zoomFactor-translateFactorX, right*zoomFactor-translateFactorX, bottom*zoomFactor-translateFactorY, ytop*zoomFactor-translateFactorY, near, far);
     eye[0] += change;
@@ -757,10 +809,8 @@ function render(){
 
 //points start at 12324 ends at 14124
     changeColors();
-    s = scale4(.1,.07,.09);
-    t = translate(0.2,.3,0);
-  //  modelViewMatrix = mult(modelViewMatrix,s);
-    //modelViewMatrix = mult(modelViewMatrix,t);
+    s = scale4(.1,.07,.14);
+    t = translate(-3,-2.9,1);
   //  s = scale4(.1,.1,0);
   //  t = translate(0.2,.2,.5);
     modelViewMatrix = mult(modelViewMatrix,s);
@@ -800,30 +850,34 @@ function render(){
     mvMatrixStack.push(modelViewMatrix);
 
     modelViewMatrix = mat4();
-    if(isBlinking == false){
-      materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
-      materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
-      materialSpecular = vec4( .9, .1, .1, 1.0 ); //this chooses the color
-      materialShininess = 20;
-
-      ambientProduct = mult(lightAmbient, materialAmbient);
-      diffuseProduct = mult(lightDiffuse, materialDiffuse);
-      specularProduct = mult(lightSpecular, materialSpecular);
-
-      changeColors();
+    if(isBlinking) {
+        // Animate the blinking effect
+        if (increasingIntensity) {
+            lampLightIntensity += blinkSpeed;
+            if (lampLightIntensity >= 1.0) {
+                lampLightIntensity = 1.0;
+                increasingIntensity = false;
+            }
+        } else {
+            lampLightIntensity -= blinkSpeed;
+            if (lampLightIntensity <= 0) {
+                lampLightIntensity = 0;
+                increasingIntensity = true;
+            }
+        }
     }
-    else{
-      materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
-      materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
-      materialSpecular = vec4( .1, .9, .1, 1.0 ); //this chooses the color
-      materialShininess = 20;
 
-      ambientProduct = mult(lightAmbient, materialAmbient);
-      diffuseProduct = mult(lightDiffuse, materialDiffuse);
-      specularProduct = mult(lightSpecular, materialSpecular);
+    // Set lamp material properties based on the light intensity
+    materialAmbient = vec4(0.1 * lampLightIntensity, 0.1 * lampLightIntensity, 0.1 * lampLightIntensity, 1.0);
+    materialDiffuse = vec4(0.1 * lampLightIntensity, 0.1 * lampLightIntensity, 0.1 * lampLightIntensity, 1.0);
+    materialSpecular = vec4(0.1 * lampLightIntensity, 0.6 * lampLightIntensity, 0.9 * lampLightIntensity, 1.0);
 
-      changeColors();
-    }
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
 
     s = scale4(.2,.2,.2);
     t = translate(2.7,-1.3,-0.5);
@@ -832,6 +886,32 @@ function render(){
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.drawArrays(gl.TRIANGLES, 17706, 528);
     modelViewMatrix = mvMatrixStack.pop();
+
+    //draws the tent
+    mvMatrixStack.push(modelViewMatrix);
+
+    modelViewMatrix = mat4();
+
+    materialAmbient = vec4( 0.1, 0.1, 0.1, 1. );
+    materialDiffuse = vec4( 0.1, 0.1, .1, 1.0);
+    materialSpecular = vec4( 0.8, 0.6, 0.2, 1.0 ); //this chooses the color
+    materialShininess = 12;
+
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+
+    changeColors();
+
+    s = scale4(.7,.3,0.3);
+    t = translate(.6,-3,0);
+    modelViewMatrix = mult(modelViewMatrix,s);
+    modelViewMatrix = mult(modelViewMatrix,t);
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.TRIANGLES, 18234, 278);
+    modelViewMatrix = mvMatrixStack.pop();
+
+
 
     //changes wall colors
     materialAmbient = vec4( 0.1, 0.1, 0.1, 1.0 );
@@ -869,7 +949,7 @@ function render(){
   	//Right Wall
   	mvMatrixStack.push(modelViewMatrix);
   	r = rotate(-90, 1.0, 0.0, 0.0);
-    t = translate(-0.01,.2,.15);
+    t = translate(-0.01,.5,.5);
     modelViewMatrix = mult(modelViewMatrix, r);
     modelViewMatrix = mult(modelViewMatrix, t);
 
